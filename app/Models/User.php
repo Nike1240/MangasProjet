@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use App\Models\Client;
 use App\Models\Artist;
+use App\Models\Admin;
 
 
 class User extends Authenticatable implements CanResetPassword
@@ -36,7 +37,7 @@ class User extends Authenticatable implements CanResetPassword
     {
         return $this->hasOne(Client::class);
     }
-
+    
     public function dessinateur()
     {
         return $this->hasOne(Artist::class);

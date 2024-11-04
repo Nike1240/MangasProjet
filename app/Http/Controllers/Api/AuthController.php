@@ -88,8 +88,57 @@ class AuthController extends Controller
             ], 500);
         }
     }
+     /**
+     * Handle Admin Login
+     */
 
-    /**
+    // public function loginAdmin(Request $request)
+    // {
+    //     $credentials = $request->validate([
+    //         'email' => ['required', 'email'],
+    //         'password' => ['required'],
+    //     ]);
+
+    //     if (Auth::guard('admin')->attempt($credentials)) {
+    //         $request->session()->regenerate();
+    //         return redirect()->intended('admin/dashboard');
+    //     }
+
+    //     return back()->withErrors([
+    //         'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
+    //     ]);
+    // }
+    public function loginAdmin(Request $request)
+{
+    try {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::guard('admin')->attempt($credentials)) {
+            // $request->session()->regenerate();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Connexion réussie'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Email ou mot de passe invalide'
+        ], 401);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Une erreur est survenue',
+            'debug' => $e->getMessage()
+        ], 500);
+    }
+}
+  
+  /**
      * Handle client registration.
      */
     public function registerClient(Request $request)
@@ -274,9 +323,9 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 
-/**
- * Envoyer le lien de réinitialisation du mot de passe
- */
+    /**
+    * Envoyer le lien de réinitialisation du mot de passe
+    */
     public function forgotPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -334,49 +383,90 @@ class AuthController extends Controller
     /**
      * Valider le token et réinitialiser le mot de passe
      */
+    // public function resetPassword(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'email' => 'required|email|exists:users',
+    //         'token' => 'required|string',
+    //         'password' => 'required|string|min:8|confirmed',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
+
+    //     // Vérifier le token
+    //     $resetRecord = DB::table('password_reset_tokens')
+    //         ->where('email', $request->email)
+    //         ->first();
+
+    //     if (!$resetRecord || !Hash::check($request->token, $resetRecord->token)) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Token invalide ou expiré'
+    //         ], 400);
+    //     }
+
+    //     // Vérifier si le token n'est pas expiré (24h par exemple)
+    //     if (Carbon::parse($resetRecord->created_at)->addHours(24)->isPast()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Le token a expiré'
+    //         ], 400);
+    //     }
+
+    //     // Mettre à jour le mot de passe
+    //     $user = User::where('email', $request->email)->first();
+    //     $user->password = Hash::make($request->password);
+    //     $user->save();
+
+    //     // Supprimer le token utilisé
+    //     DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Mot de passe réinitialisé avec succès'
+    //     ]);
+    // }
+
     public function resetPassword(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users',
-            'token' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+{
+    $request->validate([
+        'token' => 'required',
+        'email' => 'required|email',
+        'password' => 'required|min:8|confirmed',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+    $status = Password::reset(
+        $request->only('email', 'password', 'password_confirmation', 'token'),
+        function ($user, $password) {
+            // Mise à jour correcte du mot de passe
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => Str::random(60), // Régénère le remember_token
+            ])->save();
+
+            // Déconnecter l'utilisateur de toutes ses sessions
+            $user->tokens()->delete();
+
+            // Déclencher l'événement de réinitialisation
+            event(new PasswordReset($user));
         }
+    );
 
-        // Vérifier le token
-        $resetRecord = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->first();
-
-        if (!$resetRecord || !Hash::check($request->token, $resetRecord->token)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Token invalide ou expiré'
-            ], 400);
-        }
-
-        // Vérifier si le token n'est pas expiré (24h par exemple)
-        if (Carbon::parse($resetRecord->created_at)->addHours(24)->isPast()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Le token a expiré'
-            ], 400);
-        }
-
-        // Mettre à jour le mot de passe
-        $user = User::where('email', $request->email)->first();
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        // Supprimer le token utilisé
-        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-
+    if ($status == Password::PASSWORD_RESET) {
         return response()->json([
             'status' => 'success',
             'message' => 'Mot de passe réinitialisé avec succès'
         ]);
     }
+
+    return response()->json([
+        'status' => 'error',
+        'message' => trans($status)
+    ], 400);
 }
+
+}
+
+

@@ -22,13 +22,18 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Routes pour les clients
+// Routes pour authentification des clients
 Route::post('/register/client', [AuthController::class, 'registerClient']);
 Route::post('/login/client', [AuthController::class, 'loginClient']);
 
-// Routes pour les artistes
+// Routes pour authentification des artistes
 Route::post('/register/artist', [AuthController::class, 'registerArtist']);
 Route::post('/login/artist', [AuthController::class, 'loginArtist']);
+
+// Routes pour authentification de Admin
+Route::prefix('admin')->group(function () {
+    Route::post('loginAdmin', [AuthController::class, 'loginAdmin']);
+});
 
 // Routes communes
 Route::middleware('auth:sanctum')->group(function () {
@@ -37,27 +42,16 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Routes pour authentification avec google
-
 Route::get('auth/google/redirect/{userType}', [AuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 
+// Routes pour la Reinitialisation de mots de passe 
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Routes pour les artistes
-Route::prefix('artist')->group(function () {
-    Route::post('/register', [ArtisteController::class, 'register']);
-    Route::post('/login', [ArtisteController::class, 'login']);
-});
 
 
 
-
-// Routes pour les clients
-Route::prefix('client')->group(function () {
-    Route::post('/register', [ClientController::class, 'register']);
-    Route::post('/login', [ClientController::class, 'login']);
-});
 
 // Routes protégées
 Route::middleware('auth:sanctum')->group(function () {
