@@ -143,6 +143,10 @@ Route::post('{chapter}/pages/{page}', [SeasonController::class, 'update']);
 
 Route::apiResource('{chapter}/pages', PageController::class, ['only' => ['index', 'show', 'store','destroy']])->names(['index' => 'pages.index', 'show' => 'pages.show', 'store' => 'pages.store', 'destroy' => 'pages.destroy']);;  
 
+// Route concernant les episodes 
+
+Route::post('seasons/{season}/episodes', [EpisodeController::class, 'store']); // on arrive pas encore à enrégistrer une vidéo de plus de 3Mo 
+
 // Routes concernant les fonctions de recherche
 
 Route::get('/search', [ContentController::class, 'search'])->name('library.search'); // Route pour la recherche générale
@@ -219,22 +223,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     
-    // Routes Ads
-    Route::post('/ads/view', [AdViewController::class, 'recordAdView']);
-
-    // Routes Subscriptions
-    Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
-
-    Route::get('/contents/{content}/details', [ContentInteractionController::class, 'showContentDetails']);
-
-    Route::get('/', [ContentController::class, 'home'])->name('home');
-
-    
-   
-    Route::post('{chapter}/pages/reorder', [PageController::class, 'reorder']);
     
     
-    // Seasons & Episodes
 
-    Route::post('seasons/{season}/episodes', [EpisodeController::class, 'store']);
+    
     

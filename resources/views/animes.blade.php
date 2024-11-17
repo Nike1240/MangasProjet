@@ -33,5 +33,5 @@
 
         {{-- Route pour Avoir les détails sur l'animé  --}}
 
-        <a href="{{ route('anime.show', $anime->slug) }}" class="btn-watch">Regarder</a>
+        <a href="#" class="btn-watch">Regarder</a>
     @endforeach

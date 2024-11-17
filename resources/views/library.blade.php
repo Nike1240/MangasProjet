@@ -56,7 +56,6 @@
                 {{ $manga->language }} {{-- récupération de la langue utilisée pour ce manga --}}
                 {{ $manga->views_count }} {{-- récupérer le nombre de vues --}}
                 {{ $manga->likes_count }} {{-- Récupérer le nombre de likes --}}
-                {{ $manga->age_rating }} {{-- Récupérer la notation --}}
 
             {{-- Route pour Avoir les détails sur le manga  --}}
 
@@ -85,7 +84,6 @@
                 {{ Str::limit($anime->description, 100) }} {{-- afficher la description de l'animé en limitant le nombre de caractère de sorte qu'il y qit des points de suspension lorsque la limite sera atteint // Tu pourras l'ajuster au besoin --}}
                 {{ $manga->views_count }} {{-- récupérer le nombre de vues --}}
                 {{ $manga->likes_count }} {{-- Récupérer le nombre de likes --}}
-                {{ $anime->age_rating }} {{-- Récupérer la notation --}}
 
                 {{-- Route pour Avoir les détails sur l'animé  --}}
 

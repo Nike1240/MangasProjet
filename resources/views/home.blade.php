@@ -23,12 +23,12 @@
 
                 {{-- Route pour Avoir les détails sur le manga  --}}
 
-                <a href="{{ route('manga.show', $manga->slug) }}" class="btn-read">Commencer la lecture</a>
+                <a href="#" class="btn-read">Commencer la lecture</a>
             @endforeach
 
     {{-- Animes Populaires Section --}}
 
-            <a href="{{ route('contents.index', ['type' => 'anime']) }}" class="voir-plus">Voir d'animés ></a>
+            <a href="#" class="voir-plus">Voir d'animés ></a>
 
             {{-- une boucle pour afficher les contenues animés existants --}}
 
@@ -48,6 +48,6 @@
 
                 {{-- Route pour Avoir les détails sur l'animé  --}}
 
-                <a href="{{ route('anime.show', $anime->slug) }}" class="btn-watch">Regarder</a>
+                <a href="#" class="btn-watch">Regarder</a>
             @endforeach
 

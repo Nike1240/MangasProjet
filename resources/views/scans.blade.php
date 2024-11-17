@@ -31,7 +31,6 @@
             {{ $manga->language }} {{-- récupération de la langue utilisée pour ce manga --}}
             {{ $manga->views_count }} {{-- récupérer le nombre de vues --}}
             {{ $manga->likes_count }} {{-- Récupérer le nombre de likes --}}
-            {{ $manga->age_rating }} {{-- Récupérer la notation --}}
 
         {{-- Route pour Avoir les détails sur le manga  --}}
 
