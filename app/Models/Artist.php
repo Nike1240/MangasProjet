@@ -8,20 +8,33 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\User;
-
+use Carbon\Carbon;
 
 
 class Artist extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = [
-        'user_id'
-    ];
+    protected $guarded = ['id'];
+
 
     public function user()
-{
-    return $this->belongsTo(User::class, 'id');
-}
+    {
+        return $this->belongsTo(User::class, 'id');
+    }
+
+    public function contents()
+    {
+        return $this->hasMany(Content::class);
+    }
+
+    public function getAgeAttribute()
+    {
+        return $this->date_of_birth ? Carbon::parse($this->date_of_birth)->age : null;
+    }
   
 }
+
+
+    
+

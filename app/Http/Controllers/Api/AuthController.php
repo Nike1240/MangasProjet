@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Client;
 use App\Models\Artist;
+use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -116,18 +117,24 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::guard('admin')->attempt($credentials)) {
-            // $request->session()->regenerate();
+        $admin = Admin::where('email', $credentials['email'])->first();
+
+        if (!$admin || !Hash::check($credentials['password'], $admin->password)) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'Connexion réussie'
-            ]);
+                'status' => 'error',
+                'message' => 'Email ou mot de passe invalide'
+            ], 401);
         }
 
+        // Générer le token
+        $token = $admin->createToken('admin-token')->plainTextToken;
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Email ou mot de passe invalide'
-        ], 401);
+            'status' => 'success',
+            'message' => 'Connexion réussie',
+            'token' => $token,
+            'admin' => $admin
+        ]);
 
     } catch (\Exception $e) {
         return response()->json([

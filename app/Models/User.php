@@ -38,7 +38,7 @@ class User extends Authenticatable implements CanResetPassword
         return $this->hasOne(Client::class);
     }
     
-    public function dessinateur()
+    public function artist()
     {
         return $this->hasOne(Artist::class);
     }
@@ -61,5 +61,10 @@ class User extends Authenticatable implements CanResetPassword
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function favorites()
+    {
+        return $this->morphMany(\App\Models\Favorite::class, 'favoritable');
     }
 }
