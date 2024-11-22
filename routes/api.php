@@ -4,18 +4,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ArtisteController;
-
+use App\Http\Controllers\Api\PaiementController;
 
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API Routes Authentification
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
 */
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -50,9 +45,6 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 
-
-
-
 // Routes protégées
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', function (Request $request) {
@@ -60,3 +52,20 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['message' => 'Logged out successfully']);
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| API Routes Paiement
+|--------------------------------------------------------------------------
+*/
+Route::get('/payment', [PaiementController::class, 'showPaymentForm'])->name('payment.form');
+
+Route::post('/payment', [PaiementController::class, 'processPayment'])->name('payment.process');
+
+Route::get('/payment/callback', [PaiementController::class, 'paymentCallback'])->name('payment.callback');
+
+Route::get('/payment/success', [PaiementController::class, 'paymentSuccess'])->name('payment.success');
+
+Route::get('/payment/failure', [PaiementController::class, 'paymentFailure'])->name('payment.failure');
+
+Route::get('/transactions', [PaiementController::class, 'getTransactions'])->name('transactions.index');
