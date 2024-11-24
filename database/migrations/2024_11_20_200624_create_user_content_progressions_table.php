@@ -11,16 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('likes', function (Blueprint $table) {
+        Schema::create('user_content_progressions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->unsignedBigInteger('likable_id'); 
-            $table->string('likable_type');        
+            $table->foreignId('user_id')->constrained();
+            $table->foreignId('content_id')->constrained();
+            $table->integer('accessed_count')->default(0);
             $table->timestamps();
-        
-            $table->unique(['user_id', 'likable_id', 'likable_type']); // Empêche les doublons
+            $table->unique(['user_id', 'content_id']);
         });
-        
     }
 
     /**
@@ -28,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('likes');
+        Schema::dropIfExists('user_content_progressions');
     }
 };

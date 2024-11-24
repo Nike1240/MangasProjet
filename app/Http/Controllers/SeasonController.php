@@ -9,6 +9,9 @@ use App\Models\Content;
 use App\Models\Season;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
 
 
 class SeasonController extends Controller
@@ -45,7 +48,7 @@ class SeasonController extends Controller
             'published_at' => 'nullable|date'
         ]);
 
-        $baseSlug = Str::slug($validated['title'] . '-' . $validated['type']);
+        $baseSlug = Str::slug($validated['title'] . '-' . $content->type);
         $slug = $baseSlug;
         $counter = 1;
 
@@ -74,7 +77,9 @@ class SeasonController extends Controller
                 $query->orderBy('episode_number');
             }])->where('content_id', $content)
                ->findOrFail($seasonId);
-    
+
+        $season->increment('views_count');
+
             return response()->json([
                 'season' => $season,
                 'episodes' => $season->episodes
@@ -152,4 +157,78 @@ class SeasonController extends Controller
             ], 500);
         }
     }
+
+    public function toggleLike(Request $request, Season $season)
+    {
+        // Récupérer l'ID de l'utilisateur une seule fois
+        $userId = auth()->guard('sanctum')->id();
+        
+        if (!$userId) {
+            Log::warning('Unauthorized user attempted to toggle like for season.', [
+                'season_id' => $season->id,
+            ]);
+
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        try {
+            DB::beginTransaction();
+            
+            $like = $season->likes()->where('user_id', $userId)->first();
+            
+            if ($like) {
+                // Si le like existe, on le supprime
+                $like->delete();
+                $season->decrement('likes_count');
+                $action = 'unliked';
+
+                Log::info('User unliked a season.', [
+                    'user_id' => $userId,
+                    'season_id' => $season->id,
+                    'likes_count' => $season->likes_count,
+                ]);
+            } else {
+                // Si le like n'existe pas, on le crée
+                $season->likes()->create(['user_id' => $userId]);
+                $season->increment('likes_count');
+                $action = 'liked';
+
+                Log::info('User liked a season.', [
+                    'user_id' => $userId,
+                    'season_id' => $season->id,
+                    'likes_count' => $season->likes_count,
+                ]);
+            }
+            
+            DB::commit();
+
+            // Recharger le chapter pour avoir le nombre exact de likes
+            $season->refresh();
+            
+            return response()->json([
+                'status' => 'success',
+                'action' => $action,
+                'likes_count' => $season->likes_count
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Ajouter un log d'erreur
+            Log::error('Error toggling like for season.', [
+                'user_id' => $userId,
+                'season_id' => $season->id,
+                'error_message' => $e->getMessage(),
+                'stack_trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to toggle like'
+            ], 500);
+        }
+    }
+
 }

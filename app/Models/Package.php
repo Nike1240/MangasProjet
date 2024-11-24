@@ -11,20 +11,6 @@ class Package extends Model
 
     // Définir les attributs modifiables (mass assignable)
     protected $guarded = ['id'];
-    // protected $fillable = [
-    //     'package_type_id', 
-    //     'name', 
-    //     'is_pack', 
-    //     'unit_price', 
-    //     'pack_price', 
-    //     'pack_quantity', 
-    //     'duration', 
-    //     'pages_per_dkey', 
-    //     'episodes_per_dkey', 
-    //     'min_quantity', 
-    //     'max_quantity', 
-    //     'is_active'
-    // ];
 
     /**
      * Relation avec le modèle PackageType

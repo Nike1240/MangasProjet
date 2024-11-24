@@ -172,31 +172,31 @@ class TestPaymentController extends Controller
     }
 
     private function getExpirationDate($transactionType, $duration = null)
-{
-    $now = now();
+    {
+        $now = now();
 
-    switch ($transactionType) {
-        case 'subscription':
-            switch ($duration) {
-                case 'weekly':
-                    return $now->addWeek();
-                case 'monthly':
-                    return $now->addMonth();
-                case 'unlimited':
-                    return $now->addYear();
-                default:
-                    return $now->addDay();
-            }
-        case 'purchase':
-            if ($duration) {
-                // Convertir la durée en secondes en jours
-                return $now->addSeconds((int)$duration);
-            }
-            return $now->addDay();
-        case 'ad_reward':
-            return $now->addHours(24);
-        default:
-            return $now->addDay();
+        switch ($transactionType) {
+            case 'subscription':
+                switch ($duration) {
+                    case 'weekly':
+                        return $now->addWeek();
+                    case 'monthly':
+                        return $now->addMonth();
+                    case 'unlimited':
+                        return $now->addYear();
+                    default:
+                        return $now->addDay();
+                }
+            case 'purchase':
+                if ($duration) {
+                    // Convertir la durée en secondes en jours
+                    return $now->addSeconds((int)$duration);
+                }
+                return $now->addDay();
+            case 'ad_reward':
+                return $now->addHours(24);
+            default:
+                return $now->addDay();
+        }
     }
-}
 }

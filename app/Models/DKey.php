@@ -49,4 +49,7 @@ class DKey extends Model
             }
         });
     }
+
+    public const STATUS_ACTIVE = 'active';
+    // public const SOURCE_SIGNUP_BONUS = 'signup_bonus';
 }

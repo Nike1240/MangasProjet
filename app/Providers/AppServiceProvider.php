@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Providers;
-
+use App\Services\DKeyConsumptionService;
+use App\Services\FreeAccessService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,6 +12,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(FreeAccessService::class);
+        $this->app->singleton(DKeyConsumptionService::class);
         //
     }
 

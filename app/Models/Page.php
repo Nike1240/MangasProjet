@@ -27,8 +27,5 @@ class Page extends Model
         return $this->thumbnail_path ? Storage::url($this->thumbnail_path) : null;
     }
 
-    public function favorites()
-{
-    return $this->morphMany(Favorite::class, 'favoritable');
-}
+    
 }

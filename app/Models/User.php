@@ -67,4 +67,20 @@ class User extends Authenticatable implements CanResetPassword
     {
         return $this->morphMany(\App\Models\Favorite::class, 'favoritable');
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function dkeyTransactions()
+    {
+        return $this->hasMany(DKeyTransaction::class);
+    }
+
+    public function dkeys()
+    {
+        return $this->hasMany(DKey::class);
+    }
+
 }

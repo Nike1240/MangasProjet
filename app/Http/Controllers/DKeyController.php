@@ -66,29 +66,29 @@ class DKeyController extends Controller
 
             DB::beginTransaction();
 
-            $activeKeys = DKey::where('user_id', $userId)
-                            ->active()
+            // Récupérer toutes les D-keys de l'utilisateur, triées par source (ad_reward, purchase, subscription)
+            $earnedKeys = DKey::where('user_id', $userId)
+                            ->where('source_type', 'ad_reward') // D-keys gagnées
+                            ->where('status', 'active')
                             ->orderBy('expires_at')
                             ->get();
 
+            $purchasedOrSubscribedKeys = DKey::where('user_id', $userId)
+                                            ->whereIn('source_type', ['purchase', 'subscription']) // D-keys achetées et souscrites
+                                            ->where('status', 'active')
+                                            ->orderBy('expires_at')
+                                            ->get();
+
             $remainingToDeduct = $validated['deduct_amount'];
-            $totalAvailable = $activeKeys->sum('key_remaining');
 
-            if ($totalAvailable < $remainingToDeduct) {
-                DB::rollBack();
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Insufficient D-Keys balance'
-                ], 400);
-            }
-
-            foreach ($activeKeys as $key) {
+            // D'abord, déduire les D-keys gagnées (ad_reward)
+            foreach ($earnedKeys as $key) {
                 if ($remainingToDeduct <= 0) break;
 
                 if ($key->key_remaining <= $remainingToDeduct) {
                     $remainingToDeduct -= $key->key_remaining;
                     $key->key_remaining = 0;
-                    $key->status = 'expired';
+                    $key->status = 'expired'; // Expirer la clé une fois utilisée
                 } else {
                     $key->key_remaining -= $remainingToDeduct;
                     $remainingToDeduct = 0;
@@ -97,12 +97,41 @@ class DKeyController extends Controller
                 $key->save();
             }
 
+            // Si des D-keys restent à déduire, alors suspendre les D-keys achetées ou souscrites
+            if ($remainingToDeduct > 0) {
+                foreach ($purchasedOrSubscribedKeys as $key) {
+                    if ($remainingToDeduct <= 0) break;
+
+                    // Suspendre la clé achetée ou souscrite en la mettant en statut 'paused'
+                    $key->status = 'paused'; 
+
+                    if ($key->key_remaining <= $remainingToDeduct) {
+                        $remainingToDeduct -= $key->key_remaining;
+                        $key->key_remaining = 0;
+                    } else {
+                        $key->key_remaining -= $remainingToDeduct;
+                        $remainingToDeduct = 0;
+                    }
+
+                    $key->save();
+                }
+            }
+
+            // Si après tout ça, il reste encore des D-keys à déduire, renvoyer une erreur
+            if ($remainingToDeduct > 0) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Insufficient D-Keys balance'
+                ], 400);
+            }
+
             DB::commit();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'D-Keys deducted successfully',
-                'new_balance' => $this->getBalance($userId)
+                'new_balance' => $this->getBalance($userId) // Mettre à jour le solde des D-keys
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -112,4 +141,11 @@ class DKeyController extends Controller
             ], 500);
         }
     }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active')->whereDate('expires_at', '>=', now());
+    }
+
+
 }

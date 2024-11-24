@@ -26,7 +26,7 @@ class AdminController extends Controller
 
     public function updateProfile(Request $request)
     {
-        $admin = Auth::guard('admin')->user(); // Récupère l'admin authentifié
+        $admin = Auth::guard('admin')->user(); 
         
         \Log::info('Update profile request data', $request->all());
 
@@ -61,7 +61,7 @@ class AdminController extends Controller
         }
     }
 
-    /**
+    /** 
      * Réinitialiser l'image de profil.
      */
     public function resetProfileImage()

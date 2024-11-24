@@ -131,11 +131,15 @@ Route::post('contents/{content}/chapters/{chapter}', [ChapterController::class, 
 
 Route::apiResource('contents/{content}/chapters', ChapterController::class, ['only' => ['index', 'show', 'store','destroy']])->names(['index' => 'chapters.index', 'show' => 'chapters.show', 'store' => 'chapters.store', 'destroy' => 'chapters.destroy']);   
 
+Route::post('/chapters/{chapter}/toggle-like', [ChapterController::class, 'toggleLike']); // Route de mention j'aime
+
 // Routes pour enrégistrer et afficher les saisons
 
 Route::post('contents/{content}/seasons/{season}', [SeasonController::class, 'update']);
 
 Route::apiResource('contents/{content}/seasons', SeasonController::class, ['only' => ['index', 'show', 'store','destroy']])->names(['index' => 'seasons.index', 'show' => 'seasons.show', 'store' => 'seasons.store', 'destroy' => 'seasons.destroy']);   
+
+Route::post('/seasons/{season}/toggle-like', [SeasonController::class, 'toggleLike']); // Route de mention j'aime
 
 // Route concernant les Pages 
 
@@ -146,6 +150,8 @@ Route::apiResource('{chapter}/pages', PageController::class, ['only' => ['index'
 // Route concernant les episodes 
 
 Route::post('seasons/{season}/episodes', [EpisodeController::class, 'store']); // on arrive pas encore à enrégistrer une vidéo de plus de 3Mo 
+
+Route::post('/episodes/{episode}/toggle-like', [EpisodeController::class, 'toggleLike']); // Route de mention j'aime
 
 // Routes concernant les fonctions de recherche
 
@@ -193,24 +199,30 @@ Route::middleware('auth:sanctum')->group(function () {
 
 });
 
-    // Routes DKey consumption
+    // Routes consommation DKey  et gestion de l'accès gratuit
 
-Route::middleware('auth:sanctum')->group(function () {
+// Pour les pages de manga
 
-    Route::prefix('dkeys')->group(function () {
+Route::post('/content/consume/page/{itemId}', [DKeyConsumptionController::class, 'consumeContent']) //Consommation de pages
+    ->middleware('auth:sanctum')
+    ->defaults('type', 'page');
 
-        Route::post('/read-manga', [DKeyConsumptionController::class, 'readMangaPages']);
+// Pour les épisodes d'anime
 
-        Route::post('/watch-anime', [DKeyConsumptionController::class, 'watchAnimeEpisodes']);
+Route::post('/content/consume/episode/{itemId}', [DKeyConsumptionController::class, 'consumeContent']) //Consommation d'épisodes
+    ->middleware('auth:sanctum')
+    ->defaults('type', 'episode');
 
-        Route::get('/check-access', [DKeyConsumptionController::class, 'checkAccess']);
-    });
-});
+// Pour vérifier l'accès
 
+Route::get('/content/check-access/{contentId}', [DKeyConsumptionController::class, 'checkAccess'])
+    ->middleware('auth:sanctum');
 
+// Routes pour l'ajout de vidéo publicitaire par l'admin
 
+Route::post('/ads/view', [AdViewController::class, 'recordAdView']); // Récupère le temps de visionnage et gère le calcul du nombre de dkeys en fonction de cette durée
 
-
+Route::post('/ads/add', [AdViewController::class, 'addAdvertisement']); // ajout de vidéo publicitaire par l'admin
 
 
 
