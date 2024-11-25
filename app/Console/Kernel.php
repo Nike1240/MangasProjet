@@ -10,10 +10,18 @@ class Kernel extends ConsoleKernel
     /**
      * Define the application's command schedule.
      */
-    protected function schedule(Schedule $schedule): void
+    protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Exécute le nettoyage toutes les heures
+        $schedule->call(function () {
+            $controller = new DKeyController();
+            $controller->cleanExpiredKeys();
+        })->hourly();
+        
+        // Ou toutes les minutes pour un nettoyage plus fréquent
+        // ->everyMinute();
     }
+
 
     /**
      * Register the commands for the application.

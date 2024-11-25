@@ -11,9 +11,13 @@ class AdminSeeder extends Seeder
     public function run()
     {
         Admin::create([
-            'name' => 'Moulikath',
             'email' => 'admin@admin.com',
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
+            'first_name' => 'Moulikath',
+            'last_name' => 'BADAROU',
+            'phone_number' => '97294598',
+            'adresse' => 'AKPAKPA',
+            
         ]);
     }
 }

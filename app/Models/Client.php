@@ -15,13 +15,11 @@ class Client extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = [
-        'user_id'
-    ];
+    protected $guarded = ['id'];
 
     public function user()
-{
-    return $this->belongsTo(User::class, 'id');
-}
+    {
+        return $this->belongsTo(User::class, 'id');
+    }
   
 }
