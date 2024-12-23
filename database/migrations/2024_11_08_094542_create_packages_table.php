@@ -20,8 +20,8 @@ return new class extends Migration
             $table->decimal('pack_price', 10, 2)->nullable(); // Prix fixe pour un pack
             $table->integer('pack_quantity')->nullable(); // Nombre de DKeys dans le pack
             $table->string('duration')->nullable(); // Pour les abonnements
-            $table->integer('pages_per_dkey');
-            $table->integer('episodes_per_dkey');
+            $table->integer('pages_per_dkey');//Nombre de pages par Dkey auxquels aura droit le client 
+            $table->integer('episodes_per_dkey');//Nombre d'épisode par Dkey auxquels aura droit le client
             $table->integer('min_quantity')->default(1); // Quantité minimum d'achat
             $table->integer('max_quantity')->nullable(); // Quantité maximum d'achat (null = illimité)
             $table->boolean('is_active')->default(true);

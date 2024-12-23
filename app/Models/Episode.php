@@ -24,13 +24,15 @@ class Episode extends Model
         return $this->belongsTo(Content::class);
     }
 
-    public function season()
+    public function likes()
     {
-        return $this->belongsTo(Season::class);
+        return $this->morphMany(Like::class, 'likable');
     }
 
     public function favorites()
-{
-    return $this->morphMany(Favorite::class, 'favoritable');
-}
+    {
+        return $this->morphMany(Favorite::class, 'favoritable');
+    }
+
+    
 }

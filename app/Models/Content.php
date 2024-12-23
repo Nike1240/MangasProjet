@@ -65,9 +65,9 @@ class Content extends Model
         return $query->where('type', 'anime');
     }
 
-        public function likes()
+    public function likes()
     {
-        return $this->hasMany(Like::class);
+        return $this->morphMany(Like::class, 'likable');
     }
 
     public function comments()
@@ -76,7 +76,9 @@ class Content extends Model
     }
 
     public function favorites()
-{
-    return $this->morphMany(Favorite::class, 'favoritable');
-}
+    {
+        return $this->morphMany(Favorite::class, 'favoritable');
+    }
+    public const TYPE_MANGA = 'manga';
+    public const TYPE_ANIME = 'anime';
 }

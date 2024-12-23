@@ -40,7 +40,12 @@ class Season extends Model
     }
 
     public function favorites()
-{
-    return $this->morphMany(Favorite::class, 'favoritable');
-}
+    {
+        return $this->morphMany(Favorite::class, 'favoritable');
+    }
+
+    public function likes()
+    {
+        return $this->morphMany(Like::class, 'likable');
+    }
 }

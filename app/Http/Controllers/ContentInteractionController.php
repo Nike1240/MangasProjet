@@ -6,6 +6,8 @@ use App\Models\Content;
 use App\Models\Genre;
 use App\Models\Chapter;
 use App\Models\Season;
+use App\Models\Episode;
+use App\Models\Page;
 use App\Models\Favorite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

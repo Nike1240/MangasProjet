@@ -16,9 +16,17 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\DKeyConsumptionService;
+use App\Services\FreeAccessService;
 
 class AuthController extends Controller
 {
+    private FreeAccessService $freeAccessService;
+
+    public function __construct(FreeAccessService $freeAccessService)
+    {
+        $this->freeAccessService = $freeAccessService;
+    }
 
      /**
      * Redirect to Google OAuth.
@@ -111,44 +119,48 @@ class AuthController extends Controller
     // }
 
     public function loginAdmin(Request $request)
-{
-    try {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+    {
+        try {
+            $credentials = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required'],
+            ]);
 
-        $admin = Admin::where('email', $credentials['email'])->first();
+            $admin = Admin::where('email', $credentials['email'])->first();
 
-        if (!$admin || !Hash::check($credentials['password'], $admin->password)) {
+            if (!$admin || !Hash::check($credentials['password'], $admin->password)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Email ou mot de passe invalide'
+                ], 401);
+            }
+
+            // Générer le token
+            $token = $admin->createToken('admin-token')->plainTextToken;
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Connexion réussie',
+                'token' => $token,
+                'admin' => $admin
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Email ou mot de passe invalide'
-            ], 401);
+                'message' => 'Une erreur est survenue',
+                'debug' => $e->getMessage()
+            ], 500);
         }
-
-        // Générer le token
-        $token = $admin->createToken('admin-token')->plainTextToken;
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Connexion réussie',
-            'token' => $token,
-            'admin' => $admin
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Une erreur est survenue',
-            'debug' => $e->getMessage()
-        ], 500);
     }
+<<<<<<< HEAD
 }
 
 
 
 
+=======
+>>>>>>> 63c78c9ab80a924a0181f9bda66fe2f6841a8b2e
   
   /**
      * Handle client registration.
@@ -179,6 +191,11 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // $dkeyService = new DKeyConsumptionService();
+        // $dkeyService->attributeFreeDKeys($user);
+
+        $this->freeAccessService->initializeFreeAccess($user);
 
         return response()->json([
             'status' => 'success',

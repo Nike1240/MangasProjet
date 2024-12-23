@@ -9,12 +9,6 @@ class AdView extends Model
 {
     use HasFactory;
     protected $guarded = ['id'];
-    // protected $fillable = [
-    //     'user_id',
-    //     'advertisement_id', // Changé de video_id
-    //     'watched_duration',
-    //     'reward_earned'
-    // ];
 
     public function advertisement()
     {

@@ -7,6 +7,8 @@ use App\Models\Chapter;
 use App\Models\Content;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+
 
 use Illuminate\Http\Request;
 
@@ -47,7 +49,7 @@ class ChapterController extends Controller
             'published_at' => 'nullable|date'
         ]);
 
-        $baseSlug = Str::slug($validated['title'] . '-' . $validated['type']);
+        $baseSlug = Str::slug($validated['title'] . '-' . $content->type);
         $slug = $baseSlug;
         $counter = 1;
 
@@ -67,6 +69,7 @@ class ChapterController extends Controller
      */
     public function show($content, $chapterId)
     {
+        
         // Rechercher le chapitre en fonction du contenu spécifié
         $chapter = Chapter::with(['pages' => function ($query) {
             $query->orderBy('page_number');
@@ -74,6 +77,7 @@ class ChapterController extends Controller
         ->where('content_id', $content) // Vérification de l'appartenance au contenu
         ->findOrFail($chapterId);
 
+        $chapter->increment('views_count');
         return response()->json([
             'chapter' => $chapter,
         ]);
@@ -143,6 +147,56 @@ class ChapterController extends Controller
             return response()->json([
                 'error' => 'Erreur lors de la suppression du chapitre.',
                 'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function toggleLike(Request $request, Chapter $chapter)
+    {
+        // Récupérer l'ID de l'utilisateur une seule fois
+        $userId = auth()->guard('sanctum')->id();
+        
+        if (!$userId) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        try {
+            DB::beginTransaction();
+            
+            $like = $chapter->likes()->where('user_id', $userId)->first();
+            
+            if ($like) {
+                // Si le like existe, on le supprime
+                $like->delete();
+                $chapter->decrement('likes_count');
+                $action = 'unliked';
+            } else {
+                // Si le like n'existe pas, on le crée
+                $chapter->likes()->create(['user_id' => $userId]);
+                $chapter->increment('likes_count');
+                $action = 'liked';
+            }
+            
+            DB::commit();
+
+            // Recharger le chapter pour avoir le nombre exact de likes
+            $chapter->refresh();
+            
+            return response()->json([
+                'status' => 'success',
+                'action' => $action,
+                'likes_count' => $chapter->likes_count
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to toggle like'
             ], 500);
         }
     }

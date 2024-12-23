@@ -73,11 +73,16 @@ class User extends Authenticatable implements CanResetPassword
     {
         return $this->morphMany(\App\Models\Favorite::class, 'favoritable');
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 63c78c9ab80a924a0181f9bda66fe2f6841a8b2e
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
     }
 
+<<<<<<< HEAD
     public function currentSubscription()
     {
         return $this->subscriptions()
@@ -86,4 +91,16 @@ class User extends Authenticatable implements CanResetPassword
             ->latest()
             ->first();
     }
+=======
+    public function dkeyTransactions()
+    {
+        return $this->hasMany(DKeyTransaction::class);
+    }
+
+    public function dkeys()
+    {
+        return $this->hasMany(DKey::class);
+    }
+
+>>>>>>> 63c78c9ab80a924a0181f9bda66fe2f6841a8b2e
 }

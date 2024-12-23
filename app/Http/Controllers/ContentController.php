@@ -164,6 +164,7 @@ class ContentController extends Controller
 
     public function show(Content $content)
     {
+        $content->increment('views_count');
         // Charger les relations nécessaires en fonction du type de contenu
         $content->load([
             'artist',

@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('episodes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('content_id')->constrained()->onDelete('cascade');
             $table->foreignId('season_id')->nullable()->constrained()->onDelete('set null');
             $table->string('title');
             $table->string('slug')->unique();
@@ -31,7 +30,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         
-            $table->index(['content_id', 'status']);
+            
             $table->index(['season_id', 'episode_number']);
             $table->index('views_count');
         });
