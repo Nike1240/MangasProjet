@@ -36,12 +36,10 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
-    'fedapay' => [
-    'public_key' => env('FEDAPAY_PUBLIC_KEY'),
-    'environment' => env('FEDAPAY_ENV', 'sandbox'),
-],
-
-
+   'fedapay' => [
+        'api_key' => env('FEDAPAY_API_KEY', 'sk_sandbox_2OHeSNkep6sX5sTyRaBGOak4'),
+        'environment' => env('FEDAPAY_ENV', 'sandbox'),
+    ],
   
 
 

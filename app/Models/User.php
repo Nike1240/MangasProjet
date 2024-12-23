@@ -20,7 +20,8 @@ class User extends Authenticatable implements CanResetPassword
     protected $fillable = [
         'email',
         'password',
-        'role'
+        'role',
+        'status'
     ];
 
     protected $hidden = [
@@ -31,14 +32,19 @@ class User extends Authenticatable implements CanResetPassword
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'suspended_at' => 'datetime'
     ];
 
+    public function isSuspended()
+    {
+        return $this->status === 'suspended';
+    }
     public function client()
     {
         return $this->hasOne(Client::class);
     }
     
-    public function dessinateur()
+    public function artist()
     {
         return $this->hasOne(Artist::class);
     }
@@ -61,5 +67,23 @@ class User extends Authenticatable implements CanResetPassword
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function favorites()
+    {
+        return $this->morphMany(\App\Models\Favorite::class, 'favoritable');
+    }
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function currentSubscription()
+    {
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->where('end_date', '>', now())
+            ->latest()
+            ->first();
     }
 }

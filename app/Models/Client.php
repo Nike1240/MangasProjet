@@ -15,8 +15,11 @@ class Client extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $guarded = ['id'];
+
     protected $fillable = [
-        'user_id'
+        'user_id',
+        'is_active',
     ];
 
     public function user()

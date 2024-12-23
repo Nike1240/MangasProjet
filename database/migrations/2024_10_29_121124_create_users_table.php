@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('role', ['client', 'artist']);
+            $table->enum('role', ['client', 'artist'])->nullable();;
             $table->rememberToken();
             $table->string('google_id')->nullable();
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
     }

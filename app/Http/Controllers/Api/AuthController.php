@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Client;
 use App\Models\Artist;
+use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -108,6 +109,7 @@ class AuthController extends Controller
     //         'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
     //     ]);
     // }
+
     public function loginAdmin(Request $request)
 {
     try {
@@ -116,18 +118,24 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::guard('admin')->attempt($credentials)) {
-            // $request->session()->regenerate();
+        $admin = Admin::where('email', $credentials['email'])->first();
+
+        if (!$admin || !Hash::check($credentials['password'], $admin->password)) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'Connexion réussie'
-            ]);
+                'status' => 'error',
+                'message' => 'Email ou mot de passe invalide'
+            ], 401);
         }
 
+        // Générer le token
+        $token = $admin->createToken('admin-token')->plainTextToken;
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Email ou mot de passe invalide'
-        ], 401);
+            'status' => 'success',
+            'message' => 'Connexion réussie',
+            'token' => $token,
+            'admin' => $admin
+        ]);
 
     } catch (\Exception $e) {
         return response()->json([
@@ -137,6 +145,10 @@ class AuthController extends Controller
         ], 500);
     }
 }
+
+
+
+
   
   /**
      * Handle client registration.
@@ -262,45 +274,93 @@ class AuthController extends Controller
     /**
      * Handle artist login.
      */
-    public function loginArtist(Request $request)
-    {
-        if ($request->has('google_token')) {
-            return $this->redirectToGoogle('artist');
-        }
+    // public function loginArtist(Request $request)
+    // {
+    //     if ($request->has('google_token')) {
+    //         return $this->redirectToGoogle('artist');
+    //     }
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+    //     $validator = Validator::make($request->all(), [
+    //         'email' => 'required|email',
+    //         'password' => 'required',
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                'message' => 'Identifiants invalides'
-            ], 401);
-        }
+    //     if (!Auth::attempt($request->only('email', 'password'))) {
+    //         return response()->json([
+    //             'message' => 'Identifiants invalides'
+    //         ], 401);
+    //     }
 
-        $user = User::where('email', $request->email)->firstOrFail();
+    //     $user = User::where('email', $request->email)->firstOrFail();
         
-        // Vérifier si l'utilisateur est bien un artiste
-        if ($user->role !== 'artist') {
-            return response()->json([
-                'message' => 'Accès non autorisé. Ce compte n\'est pas un compte artiste.'
-            ], 403);
-        }
+    //     // Vérifier si l'utilisateur est bien un artiste
+    //     if ($user->role !== 'artist') {
+    //         return response()->json([
+    //             'message' => 'Accès non autorisé. Ce compte n\'est pas un compte artiste.'
+    //         ], 403);
+    //     }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+    //     $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Connexion artiste réussie',
-            'token' => $token,
-            'token_type' => 'Bearer'
-        ]);
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Connexion artiste réussie',
+    //         'token' => $token,
+    //         'token_type' => 'Bearer'
+    //     ]);
+    // }
+    public function loginArtist(Request $request)
+{
+    if ($request->has('google_token')) {
+        return $this->redirectToGoogle('artist');
     }
+
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    if (!Auth::attempt($request->only('email', 'password'))) {
+        return response()->json([
+            'message' => 'Identifiants invalides'
+        ], 401);
+    }
+
+    $user = User::where('email', $request->email)->firstOrFail();
+    
+    // Vérifier si l'utilisateur est bien un artiste
+    if ($user->role !== 'artist') {
+        return response()->json([
+            'message' => 'Accès non autorisé. Ce compte n\'est pas un compte artiste.'
+        ], 403);
+    }
+
+    // Vérifier si le compte est actif
+    if ($user->status !== 'active') {
+        return response()->json([
+            'message' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.'
+        ], 403);
+    }
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Connexion artiste réussie',
+        'token' => $token,
+        'token_type' => 'Bearer',
+        'user' => $user,
+    ]);
+}
+
 
     /**
      * Handle user logout.

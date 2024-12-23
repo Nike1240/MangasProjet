@@ -59,6 +59,8 @@ return [
 
     'asset_url' => env('ASSET_URL'),
 
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
@@ -141,6 +143,7 @@ return [
 
     'maintenance' => [
         'driver' => 'file',
+        'max_upload_size' => env('MAX_UPLOAD_SIZE', 100),
         // 'store' => 'redis',
     ],
 
@@ -156,11 +159,13 @@ return [
     */
 
     'providers' => ServiceProvider::defaultProviders()->merge([
+        Intervention\Image\ImageServiceProvider::class,
+        Illuminate\Validation\ValidationServiceProvider::class,
         /*
          * Package Service Providers...
          */
 
-        /*
+   /*
          * Application Service Providers...
          */
         App\Providers\AppServiceProvider::class,
@@ -182,6 +187,7 @@ return [
     */
 
     'aliases' => Facade::defaultAliases()->merge([
+        'Image' => Intervention\Image\Facades\Image::class,
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
 
