@@ -11,14 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_content_progressions', function (Blueprint $table) {
+        Schema::create('offline_files', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('content_id')->nullable()->constrained();
-            $table->integer('accessed_count')->default(0);
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('original_name');
+            $table->string('encrypted_path');
+            $table->integer('size');
             $table->timestamps();
-            $table->unique(['user_id', 'content_id']);
         });
+        
     }
 
     /**
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('user_content_progressions');
+        Schema::dropIfExists('offline_files');
     }
 };

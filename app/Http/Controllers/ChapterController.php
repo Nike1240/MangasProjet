@@ -54,7 +54,7 @@ class ChapterController extends Controller
         $counter = 1;
 
         // Vérifier si le slug existe déjà, quel que soit le statut du contenu (supprimé ou non)
-        while (Content::withTrashed()->where('slug', $slug)->exists()) {
+        while (Chapter::withTrashed()->where('slug', $slug)->exists()) {
             $slug = $baseSlug . '-' . $counter++;
         }
 

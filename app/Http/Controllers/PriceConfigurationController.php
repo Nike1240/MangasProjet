@@ -16,7 +16,7 @@ class PriceConfigurationController extends Controller
     public function store(Request $request)
     {
 
-        $adminName = auth()->guard('admin')->user()->name;
+        $adminName = auth()->guard('admin')->user()->last_name . '-' . $request->first_name;
 
 
         if (!$adminName) {
@@ -60,12 +60,13 @@ class PriceConfigurationController extends Controller
      */
     public function updatePrice(Request $request, Package $package)
     {
-        $adminName = auth()->guard('admin')->user()->name;
+        $admin = auth()->guard('admin')->user();
 
-
-        if (!$adminName) {
+        if (!$admin) {
             return response()->json(['error' => 'Vous n\'êtes pas un administrateur enregistré.'], 403);
         }
+
+        $adminName = $admin->last_name . '-' . $admin->first_name;
 
         $validated = $request->validate([
             'unit_price' => 'required_if:is_pack,false|nullable|numeric|min:0',
@@ -74,15 +75,15 @@ class PriceConfigurationController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $package, $validated) {
+            DB::transaction(function () use ($request, $package, $validated, $adminName) {
                 // Enregistrer l'historique pour le prix unitaire si applicable
                 if (!$package->is_pack && isset($validated['unit_price'])) {
-                    $this->createPriceHistory($package, 'unit_price', $validated['unit_price'], $request->reason);
+                    $this->createPriceHistory($package, 'unit_price', $validated['unit_price'], $validated['reason'], $adminName);
                 }
 
                 // Enregistrer l'historique pour le prix du pack si applicable
                 if ($package->is_pack && isset($validated['pack_price'])) {
-                    $this->createPriceHistory($package, 'pack_price', $validated['pack_price'], $request->reason);
+                    $this->createPriceHistory($package, 'pack_price', $validated['pack_price'], $validated['reason'], $adminName);
                 }
 
                 // Mettre à jour les prix
@@ -90,6 +91,7 @@ class PriceConfigurationController extends Controller
                     return in_array($key, ['unit_price', 'pack_price']);
                 }, ARRAY_FILTER_USE_KEY));
             });
+
             return response()->json([
                 'message' => 'Prix mis à jour avec succès',
                 'package' => $package,
@@ -103,12 +105,19 @@ class PriceConfigurationController extends Controller
         }
     }
 
+
     /**
      * Met à jour les autres paramètres du package
      */
     public function update(Request $request, Package $package)
     {
-        $adminName = auth()->guard('admin')->user()->name;
+        $admin = auth()->guard('admin')->user();
+
+        if (!$admin) {
+            return response()->json(['error' => 'Vous n\'êtes pas un administrateur enregistré.'], 403);
+        }
+
+        $adminName = $admin->last_name . '-' . $admin->first_name;
 
 
         if (!$adminName) {
@@ -143,7 +152,7 @@ class PriceConfigurationController extends Controller
     /**
      * Crée un enregistrement dans l'historique des prix
      */
-    private function createPriceHistory(Package $package, string $priceType, float $newPrice, string $reason): void
+    private function createPriceHistory(Package $package, string $priceType, float $newPrice, string $reason, string $adminName): void
     {
         $oldPrice = $package->$priceType;
 
@@ -153,8 +162,9 @@ class PriceConfigurationController extends Controller
             'old_price' => $oldPrice,
             'new_price' => $newPrice,
             'changed_at' => now(),
-            'changed_by' => $adminName = auth()->guard('admin')->user()->name,
+            'changed_by' => $adminName, // Utilisation de l'adminName passé en paramètre
             'reason' => $reason
         ]);
     }
+
 }

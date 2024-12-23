@@ -33,6 +33,15 @@ class Episode extends Model
     {
         return $this->morphMany(Favorite::class, 'favoritable');
     }
+    public function downloads()
+    {
+        return $this->morphMany(Download::class, 'downloadable');
+    }
+
+    public function season()
+    {
+        return $this->belongsTo(Season::class);
+    }
 
     
 }

@@ -27,5 +27,8 @@ class Page extends Model
         return $this->thumbnail_path ? Storage::url($this->thumbnail_path) : null;
     }
 
-    
+    public function downloads()
+    {
+        return $this->morphMany(Download::class, 'downloadable');
+    }
 }

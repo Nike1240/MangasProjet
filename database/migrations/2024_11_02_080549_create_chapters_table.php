@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('number');
             $table->text('description')->nullable();
             $table->enum('status', ['draft', 'published', 'archived']);
-            $table->integer('episodes_count')->default(0);
+            $table->integer('pages_count')->default(0);
             $table->integer('views_count')->default(0);
             $table->integer('likes_count')->default(0);
             $table->timestamp('published_at')->nullable();
