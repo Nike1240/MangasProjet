@@ -105,4 +105,39 @@ class AdminController extends Controller
     }
 
 
+    public function updateProfileImage(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+
+        // Validation des données de la requête
+        $validator = Validator::make($request->all(), [
+            'profil_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Vérifie et traite l'image si elle est présente dans la requête
+        if ($request->hasFile('profil_image')) {
+            $file = $request->file('profil_image');
+
+            // Stockage de l'image dans le disque "public/profile_images"
+            $path = $file->store('profile_images', 'public');
+
+            // Met à jour le chemin de l'image pour l'administrateur
+            $admin->profil_image = $path;
+            $admin->save();
+
+            return response()->json([
+                'message' => 'Photo de profil mise à jour avec succès.',
+                'profil_image_url' => asset('storage/' . $path),
+            ], 200);
+        }
+
+        return response()->json([
+            'message' => 'Aucune image fournie pour la mise à jour.',
+        ], 400);
+    }
+
 }

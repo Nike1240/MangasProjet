@@ -26,6 +26,7 @@ class Season extends Model
         return $this->hasMany(Episode::class)->orderBy('episode_number');
     }
 
+
     // Scope pour les saisons publiées
     public function scopePublished($query)
     {

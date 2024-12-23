@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_content_progressions', function (Blueprint $table) {
+        Schema::create('files', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('content_id')->nullable()->constrained();
-            $table->integer('accessed_count')->default(0);
+            $table->string('name');
+            $table->string('path');
+            $table->string('type'); // Ex : PDF, MP4, etc.
+            $table->bigInteger('size'); // En octets
             $table->timestamps();
-            $table->unique(['user_id', 'content_id']);
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('user_content_progressions');
+        Schema::dropIfExists('files');
     }
 };

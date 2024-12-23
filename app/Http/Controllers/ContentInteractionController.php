@@ -9,13 +9,26 @@ use App\Models\Season;
 use App\Models\Episode;
 use App\Models\Page;
 use App\Models\Favorite;
+use App\Models\File;
+use App\Models\Download;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+// use Illuminate\Support\Facades\File;
+use App\Services\FileEncryptionService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 
 class ContentInteractionController extends Controller
 {
+    private $encryptedPath;
 
+    public function __construct(FileEncryptionService $encryptedPath)
+    {
+        $this->encryptedPath = $encryptedPath;
+    }
 
     public function showContentDetails(Content $content)
     {
@@ -243,14 +256,14 @@ class ContentInteractionController extends Controller
                         'created_at' => $favorite->created_at,
                     ];
 
-                    // Ajout des champs spécifiques selon le type
+                    
                     switch (class_basename($favorite->favoritable_type)) {
                         case 'Content':
                             $data += [
                                 'title' => $item->title,
                                 'description' => $item->description,
                                 'cover' => $item->cover,
-                                // Ajoutez d'autres champs spécifiques aux contenus
+                                
                             ];
                             break;
 
@@ -259,7 +272,7 @@ class ContentInteractionController extends Controller
                                 'title' => $item->title,
                                 'number' => $item->number,
                                 'content_id' => $item->content_id,
-                                // Ajoutez d'autres champs spécifiques aux chapitres
+                                
                             ];
                             break;
 
@@ -268,7 +281,7 @@ class ContentInteractionController extends Controller
                                 'title' => $item->title,
                                 'number' => $item->number,
                                 'content_id' => $item->content_id,
-                                // Ajoutez d'autres champs spécifiques aux saisons
+                                
                             ];
                             break;
 
@@ -277,15 +290,16 @@ class ContentInteractionController extends Controller
                                 'title' => $item->title,
                                 'number' => $item->number,
                                 'season_id' => $item->season_id,
-                                // Ajoutez d'autres champs spécifiques aux épisodes
+                                
                             ];
                             break;
 
                         case 'Page':
                             $data += [
                                 'title' => $item->title,
+                                'number' => $item->number,
                                 'chapter_id' => $item->chapter_id,
-                                // Ajoutez d'autres champs spécifiques aux pages
+                                
                             ];
                             break;
                     }
@@ -315,6 +329,333 @@ class ContentInteractionController extends Controller
             ], 500);
         }
     }
+
+    public function downloadForOffline($type, $id)
+    {
+        try {
+            $user = auth()->guard('sanctum')->user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Non authentifié'], 401);
+            }
+
+            if (!$user->hasActiveSubscription()) {
+                return response()->json(['error' => 'Abonnement non actif'], 403);
+            }
+
+            $subscription = $user->subscription;
+
+            // Vérification de la limite de téléchargements
+            if ($subscription->hasDownloadLimitReached($user)) {
+                return response()->json(['error' => 'Limite de téléchargement atteinte'], 403);
+            }
+
+            // Logique polymorphique pour différents types
+            $modelClass = $this->getOfflineModel($type);
+            
+            if (!$modelClass) {
+                return response()->json(['error' => 'Type non valide'], 400);
+            }
+
+            $item = $modelClass::findOrFail($id);
+
+            // Cryptage du contenu
+            $encryptedPath = $this->encryptItemForOffline($item, $type);
+
+            // Enregistrement du téléchargement hors ligne
+            $download = Download::updateOrCreate(
+                [
+                    'user_id' => $user->id, 
+                    'downloadable_id' => $item->id,
+                    'downloadable_type' => $modelClass
+                ],
+                [
+                    'is_offline' => true,
+                    'downloaded_at' => now()
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Élément disponible hors ligne',
+                'item' => [
+                    'id' => $item->id,
+                    'type' => $type,
+                    'name' => $this->getItemName($item, $type),
+                    'path' => $encryptedPath,
+                    'encrypted' => true
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur de téléchargement hors ligne : ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => 'Erreur lors du téléchargement',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    
+    protected function getOfflineModel($type)
+    {
+        $model = match ($type) {
+            'episode' => Episode::class,
+            'page' => Page::class,
+            'season' => Season::class,
+            'chapter' => Chapter::class,
+            default => null,
+        };
+
+        if (!$model) {
+            Log::warning("Type invalide fourni à getOfflineModel", ['type' => $type]);
+        }
+
+        return $model;
+    }
+
+
+    
+    protected function encryptItemForOffline($item, $type)
+    {
+        try {
+            Log::info("Début du cryptage pour un item", ['id' => $item->id, 'type' => $type]);
+
+            switch ($type) {
+                case 'episode':
+                    return FileEncryptionService::encryptAndStore(Storage::path($item->video_path));
+
+                case 'page':
+                    return FileEncryptionService::encryptAndStore(Storage::path($item->image_path));
+
+                case 'season':
+                    $season = Season::with('episodes')->findOrFail($item->id);
+                    
+                    if (!$season || $season->episodes->isEmpty()) {
+                        Log::error("Saison ou épisodes introuvables", ['season_id' => $item->id]);
+                        throw new \Exception("Saison ou épisodes introuvables.");
+                    }
+                    
+                    $encryptedPaths = [];
+                    foreach ($season->episodes as $episode) {
+                        if (!$episode->video_path) {
+                            Log::warning("Chemin vidéo manquant pour l'épisode", ['episode_id' => $episode->id]);
+                            continue;
+                        }
+
+                        $encryptedPaths[] = FileEncryptionService::encryptAndStore(Storage::path($episode->video_path));
+                    }
+
+                    if (empty($encryptedPaths)) {
+                        throw new \Exception("Aucun fichier vidéo crypté pour cette saison.");
+                    }
+
+                    return $encryptedPaths;
+
+                case 'chapter':
+                    $chapter = Chapter::with('pages')->findOrFail($item->id);
+
+                    if ($chapter->pages->isEmpty()) {
+                        throw new \Exception("Aucune page trouvée pour ce chapitre.");
+                    }
+
+                    $encryptedPaths = [];
+                    foreach ($chapter->pages as $page) {
+                        if ($page->image_path) {
+                            $encryptedPaths[] = FileEncryptionService::encryptAndStore(Storage::path($page->image_path));
+                        }
+                    }
+
+                    if (empty($encryptedPaths)) {
+                        throw new \Exception("Aucun fichier image crypté pour ce chapitre.");
+                    }
+
+                    return $encryptedPaths;
+
+                default:
+                    throw new \InvalidArgumentException("Type non supporté pour le cryptage hors ligne.");
+            }
+        } catch (\Exception $e) {
+            Log::error("Erreur lors du cryptage pour un item", [
+                'id' => $item->id,
+                'type' => $type,
+                'message' => $e->getMessage()
+            ]);
+
+            throw $e;
+        }
+    }
+
+
+
+
+    
+    protected function getItemName($item, $type)
+    {
+        $name = match ($type) {
+            'episode' => $item->title ?? "Épisode {$item->number}",
+            'page' => $item->title ?? "Page {$item->number}",
+            'season' => $item->title ?? "Saison {$item->number}",
+            'chapter' => $item->title ?? "Chapitre {$item->number}",
+            default => "Élément hors ligne",
+        };
+
+        if ($name === "Élément hors ligne") {
+            Log::warning("Type inconnu dans getItemName", ['id' => $item->id, 'type' => $type]);
+        }
+
+        return $name;
+    }
+
+
+
+    public function handle($request, Closure $next)
+    {
+        $user = $request->user();
+
+        // Vérifier l'abonnement et les limites
+        $downloadsThisMonth = $user->downloads()
+            ->whereMonth('downloaded_at', now()->month)
+            ->count();
+
+        if ($downloadsThisMonth >= $user->subscription->download_limit) {
+            return response()->json(['error' => 'Limite de téléchargement atteinte.'], 403);
+        }
+
+        return $next($request);
+    }
+
+
+    public function getOfflineItems()
+    {
+        $user = auth()->guard('sanctum')->user();
+        
+        $offlineItems = Download::where('user_id', $user->id)
+            ->where('is_offline', true)
+            ->with('downloadable')
+            ->get()
+            ->map(function ($download) {
+                $item = $download->downloadable;
+                return [
+                    'id' => $item->id,
+                    'type' => class_basename(get_class($item)),
+                    'name' => $this->getItemName($item, class_basename(get_class($item))),
+                    'downloaded_at' => $download->downloaded_at
+                ];
+            });
+
+        return response()->json([
+            'offline_items' => $offlineItems,
+            'total' => $offlineItems->count()
+        ]);
+    }
+
+
+    public function downloadCollectionForOffline($type, $id)
+    {
+        try {
+            $user = auth()->guard('sanctum')->user();
+
+            if (!$user) {
+                Log::warning("Utilisateur non authentifié tentant de télécharger une collection.", ['type' => $type, 'id' => $id]);
+                return response()->json(['error' => 'Non authentifié'], 401);
+            }
+
+            if (!$user->hasActiveSubscription()) {
+                Log::warning("Utilisateur sans abonnement actif tentant de télécharger une collection.", ['user_id' => $user->id]);
+                return response()->json(['error' => 'Abonnement non actif'], 403);
+            }
+
+            $subscription = $user->subscription;
+
+            if ($subscription->hasDownloadLimitReached($user)) {
+                Log::warning("Limite de téléchargement atteinte pour l'utilisateur.", ['user_id' => $user->id]);
+                return response()->json(['error' => 'Limite de téléchargement atteinte'], 403);
+            }
+
+            $modelClass = $this->getOfflineModel($type);
+
+            if (!$modelClass) {
+                Log::error("Type de collection invalide fourni.", ['type' => $type]);
+                return response()->json(['error' => 'Type non valide'], 400);
+            }
+
+            $collection = $modelClass::with($this->getCollectionItemsRelation($type))->findOrFail($id);
+
+            Log::info("Collection récupérée avec succès", ['collection_id' => $collection->id, 'type' => $type]);
+
+            $itemsRelation = $this->getCollectionItemsRelation($type);
+            $items = $collection->{$itemsRelation};
+
+            $downloadedItems = [];
+
+            foreach ($items as $item) {
+                if ($subscription->hasDownloadLimitReached($user)) {
+                    Log::warning("Limite de téléchargement atteinte en cours de traitement.", ['user_id' => $user->id]);
+                    break;
+                }
+
+                // Ajuster le type pour l'élément individuel
+                $itemType = class_basename($item); // Exemple : Episode, Page
+
+                $encryptedPath = $this->encryptItemForOffline($item, strtolower($itemType));
+
+                Download::updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'downloadable_id' => $item->id,
+                        'downloadable_type' => get_class($item)
+                    ],
+                    [
+                        'is_offline' => true,
+                        'downloaded_at' => now()
+                    ]
+                );
+
+                $downloadedItems[] = [
+                    'id' => $item->id,
+                    'name' => $this->getItemName($item, strtolower($itemType)),
+                    'path' => $encryptedPath,
+                    'encrypted' => true
+                ];
+            }
+
+            return response()->json([
+                'message' => 'Collection disponible hors ligne',
+                'collection' => [
+                    'id' => $collection->id,
+                    'type' => $type,
+                    'name' => $this->getItemName($collection, $type),
+                    'items_downloaded' => count($downloadedItems),
+                    'items' => $downloadedItems
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors du téléchargement hors ligne d'une collection", [
+                'type' => $type,
+                'id' => $id,
+                'message' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => 'Erreur lors du téléchargement',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    
+    protected function getCollectionItemsRelation($type)
+    {
+        $relations = [
+            'season' => 'episodes',
+            'chapter' => 'pages',
+        ];
+    
+        return $relations[$type] ?? null;
+    }
+    
 
 
 }

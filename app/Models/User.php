@@ -83,4 +83,20 @@ class User extends Authenticatable implements CanResetPassword
         return $this->hasMany(DKey::class);
     }
 
+    public function downloads()
+    {
+        return $this->hasMany(Download::class);
+    }
+
+
+    public function subscription()
+    {
+        return $this->hasOne(Subscription::class)->latestOfMany();
+    }
+
+    public function hasActiveSubscription()
+    {
+        $subscription = $this->subscription;
+        return $subscription && $subscription->isActive();
+    }
 }

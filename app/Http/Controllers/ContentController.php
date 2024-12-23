@@ -5,6 +5,8 @@ use Illuminate\Validation\Rule;
 use App\Models\Content;
 use App\Models\Genre;
 use App\Models\Tag;
+use App\Models\User;
+use App\Models\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
@@ -165,6 +167,11 @@ class ContentController extends Controller
     public function show(Content $content)
     {
         $content->increment('views_count');
+
+        View::create([
+            'content_id' => $content->id,
+            'viewed_at' => now(),
+        ]);
         // Charger les relations nécessaires en fonction du type de contenu
         $content->load([
             'artist',
@@ -469,6 +476,72 @@ class ContentController extends Controller
                 ->paginate($request->per_page ?? 15)
         );
     }
+
+
+    public function getArtistDashboard($userId)
+    {
+        // Récupérer l'artiste associé à l'utilisateur
+        $user = User::with('artist.contents')->findOrFail($userId);
+
+        $artist = $user->artist;
+        if (!$artist) {
+            return response()->json(['error' => 'Cet utilisateur n’est pas un artiste.'], 404);
+        }
+
+        // Informations générales sur l'utilisateur et l'artiste
+        $phoneNumber = $artist->phone_number;
+        $artistName = $artist->first_name . ' ' . $artist->last_name;
+        $nationality = $artist->nationality;
+
+        // Obtenir les contenus de l'artiste
+        $contents = $artist->contents;
+
+        // Récupérer les statistiques pour un contenu spécifique
+        $selectedContent = $contents->first(); // Remplacer par un ID spécifique si nécessaire
+        if ($selectedContent) {
+            $dailyViews = View::where('content_id', $selectedContent->id)
+                ->whereDate('viewed_at', now())
+                ->count();
+
+            $weeklyViews = View::where('content_id', $selectedContent->id)
+                ->whereBetween('viewed_at', [now()->startOfWeek(), now()->endOfWeek()])
+                ->count();
+
+            $monthlyViews = View::where('content_id', $selectedContent->id)
+                ->whereMonth('viewed_at', now()->month)
+                ->count();
+        } else {
+            $dailyViews = $weeklyViews = $monthlyViews = 0; // Si aucun contenu sélectionné
+        }
+
+        // Historique des contenus publiés
+        $history = $contents->map(function ($content) {
+            return [
+                'title' => $content->title,
+                'status' => $content->status,
+                'publication_status' => $content->publication_status,
+                'created_at' => $content->created_at->format('d M Y'),
+                'views_count' => $content->views_count,
+            ];
+        });
+
+        // Retourner les données
+        return response()->json([
+            'artist' => [
+                'name' => $artistName,
+                'phone' => $phoneNumber,
+                'nationality' => $nationality,
+            ],
+            'selected_content' => [
+                'title' => $selectedContent->title ?? null,
+                'weekly_views' => $weeklyViews,
+                'daily_views' => $dailyViews,
+                'monthly_views' => $monthlyViews,
+            ],
+            'history' => $history,
+        ]);
+    }
+
 
 
     

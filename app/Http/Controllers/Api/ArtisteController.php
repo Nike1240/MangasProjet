@@ -72,6 +72,7 @@ class ArtisteController extends Controller
             $validated = $request->validate([
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
+                'phone_number' => 'nullable|string',
                 'bio' => 'nullable|string',
                 'avatar' => 'nullable|image|max:2048',
                 'website' => 'nullable|url',
