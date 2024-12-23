@@ -44,7 +44,7 @@ class PackageSeeder extends Seeder
                 'unit_price' => null,
                 'pack_price' => 25.00,
                 'pack_quantity' => 10,
-                'duration' => '10000',
+                'duration' => '172800',
                 'pages_per_dkey' => 100,
                 'episodes_per_dkey' => 10,
                 'min_quantity' => 1,

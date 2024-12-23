@@ -128,23 +128,47 @@ class PageController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Page $page)
+    public function destroy(Chapter $chapter, Page $page)
     {
-        // Supprimer les fichiers associés
-        Storage::delete([
-            'public/manga_pages/' . $page->image_path,
-            'public/manga_pages/thumbnails/' . $page->thumbnail_path
-        ]);
+        // Vérifier si l'artiste authentifié est l'auteur du contenu
+        $artist = auth()->guard('sanctum')->user()->artist;
 
-        $chapter = $page->chapter;
-        $page->delete();
+        if (!$artist || $artist->id !== $chapter->content->artist_id) {
+            return response()->json(['error' => 'Vous n\'êtes pas autorisé à supprimer cette page.'], 403);
+        }
 
-        // Mettre à jour le compteur de pages
-        $chapter->pages_count = $chapter->pages()->count();
-        $chapter->save();
+        try {
+            // Vérifier que la page appartient bien au chapitre spécifié
+            if ($page->chapter_id !== $chapter->id) {
+                return response()->json(['error' => 'La page ne correspond pas au chapitre spécifié.'], 400);
+            }
 
-        return response()->json(null, 204);
+            // Supprimer les fichiers associés à la page
+            Storage::delete([
+                'public/manga_pages/' . $page->image_path,
+                'public/manga_pages/thumbnails/' . $page->thumbnail_path,
+            ]);
+
+            // Supprimer la page
+            $page->delete();
+
+            // Mettre à jour le compteur de pages du chapitre
+            $chapter->pages_count = $chapter->pages()->count();
+            $chapter->save();
+
+            return response()->json([
+                'message' => 'Page supprimée avec succès.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression de la page : ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Erreur lors de la suppression de la page.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
+
 
     /**
      * Réorganiser les numéros de pages

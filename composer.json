@@ -6,7 +6,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
+<<<<<<< HEAD
         "fedapay/fedapay-php": "*",
+=======
+        "dedoc/scramble": "^0.11.27",
+>>>>>>> c5b895a6579c2fbcc7bfeb988550d48eed4f6755
         "guzzlehttp/guzzle": "^7.2",
         "intervention/image": "2.7",
         "laravel/framework": "^10.10",

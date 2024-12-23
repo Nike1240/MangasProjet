@@ -31,7 +31,7 @@ class EpisodeController extends Controller
     {
         $validated = $request->validate([
             'videos' => 'required|array',
-            'videos.*' => 'required|file|mimetypes:video/mp4,video/webm|max:512000',
+            'videos.*' => 'required|file|mimetypes:video/mp4,video/webm',
             'thumbnails' => 'required|array',
             'thumbnails.*' => 'required|image|max:2048',
             'episode_numbers' => 'required|array',
@@ -55,8 +55,8 @@ class EpisodeController extends Controller
 
             $title = $request->titles[$index];
             $episodeNumber = $request->episode_numbers[$index];
-            
-            $slug = Str::slug($title . '-episode-' . $episodeNumber);
+            $seasonId=$season->id;
+            $slug = Str::slug($title . '-episode-' . $episodeNumber . '-' . $seasonId);
             
             // Télécharger la vidéo
             $videoName = Str::slug($title) . '_' . time() . '.' . $videoFile->getClientOriginalExtension();
@@ -76,7 +76,7 @@ class EpisodeController extends Controller
                 'description' => $request->descriptions[$index] ?? null,
                 'video_path' => $videoPath,
                 'thumbnail_path' => $thumbnailPath,
-                'duration' => $duration, // Durée extraite automatiquement
+                'duration' => $duration, 
                 'status' => $request->statuses[$index],
                 'slug' => $slug,
                 'season_number' => $season->number,
@@ -93,24 +93,29 @@ class EpisodeController extends Controller
 
 
     /**
-     * Display the specified resource.
+     * Display the specified resource. /etc/php/8.1/cli/php.ini
      */
     public function show($seasonId, $episodeId)
     {
-        $episode->increment('views_count');
-
+        // Récupérer l'épisode correspondant au seasonId et à l'episodeId
         $episode = Episode::where('season_id', $seasonId)->findOrFail($episodeId);
-
+    
+        // Incrémenter le compteur de vues
+        $episode->increment('views_count');
+    
+        // Retourner l'épisode en JSON
         return response()->json($episode);
     }
+    
 
+   
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, Season $season, Episode $episode)
     {
         $validated = $request->validate([
-            'video' => 'nullable|file|mimetypes:video/mp4,video/webm|max:512000',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/webm',
             'thumbnail' => 'nullable|image|max:2048',
             'episode_number' => 'required|integer|min:1',
             'title' => 'required|string|max:255',
